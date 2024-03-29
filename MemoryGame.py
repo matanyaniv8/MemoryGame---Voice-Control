@@ -106,10 +106,7 @@ class MemoryGame:
                         if index not in self.matches and index not in self.selected:
                             self.selected.append(index)
                         if len(self.selected) == 2:
-                            print(len(self.selected))
-                            if self.check_completion():
-                                self.selected.clear()
-                            elif self.colors[self.selected[0]] == self.colors[self.selected[1]]:
+                            if self.colors[self.selected[0]] == self.colors[self.selected[1]]:
                                 self.matches.update(self.selected)
                                 self.selected.clear()
                                 self.match_sound.play()
