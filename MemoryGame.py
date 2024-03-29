@@ -4,18 +4,17 @@ import sys  # Import sys module
 
 pygame.init()
 
-"""screen_width = 600
-screen_height = 400
-screen = pygame.display.set_mode((screen_width, screen_height))"""
-
 # Get user's screen size
 infoObject = pygame.display.Info()
 screen_width = infoObject.current_w
 screen_height = infoObject.current_h
 
-# Example: Decide to use 80% of the screen width and 60% of the screen height for the board
+# Example: Decide to use 50% of the screen width and 50% of the screen height for the board
 screen_width = int(screen_width * 0.5)
 screen_height = int(screen_height * 0.5)
+
+# Load matching sound effect.
+match_sound = pygame.mixer.Sound('./res/match_sound.wav')
 
 bg_color = pygame.Color('white')
 hidden_color = pygame.Color('grey')
@@ -67,6 +66,8 @@ while running:
                 if colors[selected[0]] == colors[selected[1]]:
                     matches.update(selected)
                     selected = []
+                    # Play the match sound
+                    match_sound.play()
                 else:
                     flip_back_time = current_time + 1000  # Set flip back time to 1 second later
                     waiting_to_flip_back = True
