@@ -1,11 +1,21 @@
 import pygame
 import random
+import sys  # Import sys module
 
 pygame.init()
 
-screen_width = 600
+"""screen_width = 600
 screen_height = 400
-screen = pygame.display.set_mode((screen_width, screen_height))
+screen = pygame.display.set_mode((screen_width, screen_height))"""
+
+# Get user's screen size
+infoObject = pygame.display.Info()
+screen_width = infoObject.current_w
+screen_height = infoObject.current_h
+
+# Example: Decide to use 80% of the screen width and 60% of the screen height for the board
+screen_width = int(screen_width * 0.5)
+screen_height = int(screen_height * 0.5)
 
 bg_color = pygame.Color('white')
 hidden_color = pygame.Color('grey')
@@ -17,31 +27,49 @@ colors *= 2  # Duplicate colors for pairs
 rows = 4
 cols = 4
 card_width = screen_width // cols
-card_height = screen_height // rows
-hidden = True
+card_height = screen_height // rows - 10
+screen = pygame.display.set_mode((screen_width, screen_height))
 matches = set()
 selected = []
 
 random.shuffle(colors)
 
+# Initialize font for timer
+font = pygame.font.Font(None, 36)
+
+# Start time
+start_ticks = pygame.time.get_ticks()
+
+# Added for flip back mechanism
+flip_back_time = 0
+waiting_to_flip_back = False
+
 running = True
 while running:
+    current_time = pygame.time.get_ticks()
+    if waiting_to_flip_back and current_time >= flip_back_time:
+        selected = []  # Reset selected cards
+        waiting_to_flip_back = False  # No longer waiting
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN and len(selected) < 2:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN and len(selected) < 2 and not waiting_to_flip_back:
             x, y = event.pos
             col_index = x // card_width
             row_index = y // card_height
-            index = row_index * cols + col_index  # Adjusted calculation
+            index = row_index * cols + col_index
             if index not in matches and index not in selected:
                 selected.append(index)
-            if len(selected) == 2 and colors[selected[0]] == colors[selected[1]]:
-                matches.update(selected)
-                selected = []
-            elif len(selected) == 2:
-                pygame.time.wait(500)  # Wait half a second
-                selected = []
+            if len(selected) == 2:
+                if colors[selected[0]] == colors[selected[1]]:
+                    matches.update(selected)
+                    selected = []
+                else:
+                    flip_back_time = current_time + 1000  # Set flip back time to 1 second later
+                    waiting_to_flip_back = True
 
     screen.fill(bg_color)
     for row in range(rows):
@@ -52,8 +80,14 @@ while running:
                 pygame.draw.rect(screen, colors[index], rect)
             else:
                 pygame.draw.rect(screen, hidden_color, rect)
-            pygame.draw.rect(screen, text_color, rect, 3)  # Draw border
+            pygame.draw.rect(screen, text_color, rect, 3)
+
+    # Timer display at the bottom of the screen
+    seconds = (current_time - start_ticks) // 1000  # Convert milliseconds to seconds
+    timer_text = f"Time: {seconds // 60}:{seconds % 60:02d}"
+    text_surface = font.render(timer_text, True, text_color)
+    timer_x = screen_width // 2 - text_surface.get_width() // 2
+    timer_y = screen_height - text_surface.get_height() - 10
+    screen.blit(text_surface, (timer_x, timer_y))
 
     pygame.display.flip()
-
-pygame.quit()
