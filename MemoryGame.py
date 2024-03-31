@@ -5,9 +5,11 @@ import sys
 
 class MemoryGame:
     def __init__(self):
+        self.btn_2player_rect = None
+        self.btn_1player_rect = None
         pygame.init()
         screen_info = pygame.display.Info()
-        self.screen_width = int(screen_info.current_w * 0.5)
+        self.screen_width = int(screen_info.current_w * 0.4)
         self.screen_height = int(screen_info.current_h * 0.8)
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.bg_color = pygame.Color('white')
@@ -20,7 +22,7 @@ class MemoryGame:
         self.cols = 4
         self.card_width = self.screen_width // self.cols
         self.card_height = self.screen_height // self.rows - 10
-        self.card_size = min(self.screen_width // self.cols, self.screen_height // self.rows) - 15
+        self.card_size = min(self.screen_width // self.cols, self.screen_height // self.rows) - 40
         self.selected = []
         self.matches = set()
         random.shuffle(self.colors)
@@ -32,7 +34,7 @@ class MemoryGame:
         self.current_player = 1
 
     def draw_reset_button(self, btn_text="Reset"):
-        button_width = 120
+        button_width = 150
         button_height = 40
         button_x = self.screen_width / 2 - button_width / 2
         button_y = self.screen_height - button_height - 20
@@ -41,6 +43,24 @@ class MemoryGame:
         text_surface = self.font.render(btn_text, True, pygame.Color('white'))
         text_rect = text_surface.get_rect(center=self.reset_button_rect.center)
         self.screen.blit(text_surface, text_rect)
+
+    def draw_well_done_msg(self):
+        message_text = "Well Done!"
+        message_font = pygame.font.Font(None, 50)  # You can adjust the size as needed
+        message_surface = message_font.render(message_text, True, pygame.Color('white'))
+        message_rect = message_surface.get_rect(center=(self.screen_width / 2, self.screen_height / 2))
+
+        # Calculate background rectangle size with some padding
+        bg_rect = pygame.Rect(0, 0, message_rect.width + 20, message_rect.height + 20)
+        bg_rect.center = message_rect.center  # Align the center of both rects
+
+        # Draw the background rectangle with blue margins
+        pygame.draw.rect(self.screen, pygame.Color('dodgerblue'), bg_rect)
+
+        # Now blit the text surface onto the screen, centered within the blue rectangle
+        self.screen.blit(message_surface, message_rect)
+        # Changing the reset button text to "Play again"
+        self.draw_reset_button("Play again")
 
     def draw_player_choice_buttons(self):
         btn_1p_width = 120
@@ -66,8 +86,8 @@ class MemoryGame:
             for col in range(self.cols):
                 index = row * self.cols + col
                 # Calculate x and y position of the card with margins
-                x_pos = col * self.card_size + margin
-                y_pos = row * self.card_size + margin
+                x_pos = col * self.card_size + margin + 70
+                y_pos = row * self.card_size + margin + 80
                 rect = pygame.Rect(x_pos, y_pos, self.card_size - margin * 2, self.card_size - margin * 2)
                 if index in self.matches or index in self.selected:
                     pygame.draw.rect(self.screen, self.colors[index], rect)
@@ -81,13 +101,16 @@ class MemoryGame:
         elapsed_seconds = (current_ticks - self.start_ticks) // 1000
         timer_text = f"Time: {elapsed_seconds // 60}:{elapsed_seconds % 60:02d}"
         text_surface = self.font.render(timer_text, True, self.text_color)
-        self.screen.blit(text_surface, (10, self.screen_height - 30))  # Positioning the timer at the bottom left
+        self.screen.blit(text_surface, (10, self.screen_height - 50))  # Positioning the timer at the bottom left
 
     def draw_current_player_indicator(self):
+        x = self.reset_button_rect.x - 20
+
+        y = 20
         if self.player_count == 2:
             display_text = f"Player {self.current_player}'s Turn"
             text_surface = self.font.render(display_text, True, self.text_color)
-            self.screen.blit(text_surface, (10, 10))
+            self.screen.blit(text_surface, (x,y))
 
     def reset_game(self):
         random.shuffle(self.colors)
@@ -108,6 +131,9 @@ class MemoryGame:
                 return True  # Indicates a need to flip back cards
         return False
 
+    def is_game_over(self):
+        return len(self.matches) == len(self.colors)
+
     def run(self):
         running = True
         flip_back_time = None
@@ -127,8 +153,13 @@ class MemoryGame:
 
                 self.draw_cards()
                 self.draw_current_player_indicator()
-                self.draw_reset_button()
+                # Draw reset btn or Well Done message
+                if self.is_game_over():  # All cards matched
+                    self.draw_well_done_msg()
+                else:
+                    self.draw_reset_button()
 
+            # Handling events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -146,8 +177,8 @@ class MemoryGame:
                         self.reset_game()
                     elif self.player_count and not flip_back_time:
                         margin = 5  # Assuming this is the same margin used in draw_cards
-                        col = (x - margin) // self.card_size
-                        row = (y - margin) // self.card_size
+                        col = (x - margin - 80) // self.card_size
+                        row = (y - margin - 70) // self.card_size
                         index = row * self.cols + col
                         if index < len(self.colors) and index not in self.matches and index not in self.selected:
                             self.selected.append(index)
