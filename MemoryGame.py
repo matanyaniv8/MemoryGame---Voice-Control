@@ -1,6 +1,13 @@
+import os
+
 import pygame
 import random
 import sys
+from vosk import Model, KaldiRecognizer
+import json
+import threading
+import sounddevice as sd
+import numpy as np
 
 
 class MemoryGame:
@@ -43,7 +50,14 @@ class MemoryGame:
         self.is_time_attack = False
         self.time_attack_limit = 60  # Starting time limit for Time Attack mode
         self.start_image = pygame.image.load('./res/intro-image.png')
-        self.start_image_rect = self.start_image.get_rect(center=(self.screen_width // 2, self.screen_height // 2- 150))
+        self.start_image_rect = self.start_image.get_rect(
+            center=(self.screen_width // 2, self.screen_height // 2 - 150))
+        # Voice Control members:
+        self.is_voice_control_active = True
+        self.btn_voice_control_rect = None
+        self.microphone_icon = pygame.image.load(
+            './res/voice control.jpg').convert_alpha()  # Convert_alpha for transparency
+        self.microphone_icon = pygame.transform.scale(self.microphone_icon, (30, 30))  # Adjust size as needed
 
     def draw_reset_button(self, btn_text="Reset"):
         button_width = 150
@@ -75,10 +89,11 @@ class MemoryGame:
         self.draw_reset_button("Play again")
 
     def draw_player_choice_buttons(self):
+        # Single and Multiplayer buttons settings
         btn_1p_width = 130
         btn_height = 40
-        btn_1p_x = self.screen_width / 4 - btn_1p_width / 2
-        btn_2p_x = self.screen_width * 3 / 4 - btn_1p_width / 2
+        btn_1p_x = self.screen_width / 4 - btn_1p_width / 2 - 50
+        btn_2p_x = self.screen_width * 3 / 4 - btn_1p_width / 2 + 50
         btn_y = self.screen_height / 2 - btn_height / 2
         self.btn_1player_rect = pygame.Rect(btn_1p_x, btn_y, btn_1p_width, btn_height)
         self.btn_2player_rect = pygame.Rect(btn_2p_x, btn_y, btn_1p_width + 15, btn_height)
@@ -91,7 +106,7 @@ class MemoryGame:
 
         self.screen.blit(text_1p, (btn_1p_x + 10, btn_y + 10))
         self.screen.blit(text_2p, (btn_2p_x + 10, btn_y + 10))
-
+        # Attack Time button
         btn_time_attack_width = 170
         btn_time_attack_height = 40
         btn_time_attack_x = self.screen_width / 2 - btn_time_attack_width / 2
@@ -100,6 +115,19 @@ class MemoryGame:
         pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_time_attack_rect)
         text_time_attack = self.font.render("Time Attack", True, pygame.Color('white'))
         self.screen.blit(text_time_attack, (btn_time_attack_x + 10, btn_y + 10))
+
+        # Voice control button
+        btn_voice_control_width = 225
+        btn_voice_control_height = 35
+        btn_voice_control_x = 0
+        btn_voice_control_y = self.btn_1player_rect.bottom + 20  # Place below the 1 Player button
+        self.btn_voice_control_rect = pygame.Rect(btn_voice_control_x, btn_voice_control_y, btn_voice_control_width,
+                                                  btn_voice_control_height)
+        pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_voice_control_rect)
+        text_voice_control = self.font.render("Voice Control", True, pygame.Color('white'))
+        self.screen.blit(text_voice_control, (btn_voice_control_x + 40, btn_voice_control_y + 10))
+        icon_pos = self.btn_voice_control_rect.topleft + pygame.Vector2(4, 3.5)
+        self.screen.blit(self.microphone_icon, icon_pos)
 
     def draw_cards(self):
         margin = 5  # A small margin between cards
@@ -164,8 +192,8 @@ class MemoryGame:
 
     def draw_current_player_indicator(self):
         x = self.reset_button_rect.x - 20
-
         y = 20
+
         if self.player_count == 2:
             display_text = f"Player {self.current_player}'s Turn"
             text_surface = self.font.render(display_text, True, self.text_color)
@@ -201,7 +229,7 @@ class MemoryGame:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
                 if self.home_btn.collidepoint((x, y)):
-                    # Logic to return to the initial screen
+                    # return to the initial screen
                     self.player_count = 0  # Resetting game mode selection
                     self.is_time_attack = False  # If using Time Attack mode
 
