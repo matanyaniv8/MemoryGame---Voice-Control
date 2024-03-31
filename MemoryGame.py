@@ -23,6 +23,9 @@ class MemoryGame:
         self.card_width = self.screen_width // self.cols
         self.card_height = self.screen_height // self.rows - 10
         self.card_size = min(self.screen_width // self.cols, self.screen_height // self.rows) - 40
+        # gaps for each axis for centering the cards position.
+        self.y_gap = 70
+        self.x_gap = 80
         self.selected = []
         self.matches = set()
         random.shuffle(self.colors)
@@ -82,12 +85,13 @@ class MemoryGame:
 
     def draw_cards(self):
         margin = 5  # A small margin between cards
+
         for row in range(self.rows):
             for col in range(self.cols):
                 index = row * self.cols + col
                 # Calculate x and y position of the card with margins
-                x_pos = col * self.card_size + margin + 70
-                y_pos = row * self.card_size + margin + 80
+                x_pos = col * self.card_size + margin + self.x_gap
+                y_pos = row * self.card_size + margin + self.y_gap
                 rect = pygame.Rect(x_pos, y_pos, self.card_size - margin * 2, self.card_size - margin * 2)
                 if index in self.matches or index in self.selected:
                     pygame.draw.rect(self.screen, self.colors[index], rect)
@@ -177,8 +181,8 @@ class MemoryGame:
                         self.reset_game()
                     elif self.player_count and not flip_back_time:
                         margin = 5  # Assuming this is the same margin used in draw_cards
-                        col = (x - margin - 80) // self.card_size
-                        row = (y - margin - 70) // self.card_size
+                        col = (x - margin - self.x_gap) // self.card_size
+                        row = (y - margin - self.y_gap) // self.card_size
                         index = row * self.cols + col
                         if index < len(self.colors) and index not in self.matches and index not in self.selected:
                             self.selected.append(index)
