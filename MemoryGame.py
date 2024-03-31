@@ -5,8 +5,6 @@ import sys
 
 class MemoryGame:
     def __init__(self):
-        self.btn_2player_rect = None
-        self.btn_1player_rect = None
         pygame.init()
         screen_info = pygame.display.Info()
         self.screen_width = int(screen_info.current_w * 0.4)
@@ -18,6 +16,8 @@ class MemoryGame:
         self.colors = [pygame.Color('red'), pygame.Color('green'), pygame.Color('blue'), pygame.Color('yellow'),
                        pygame.Color('cyan'), pygame.Color('magenta'), pygame.Color('orange'),
                        pygame.Color('purple')] * 2
+        self.btn_2player_rect = None
+        self.btn_1player_rect = None
         self.rows = 4
         self.cols = 4
         self.card_width = self.screen_width // self.cols
@@ -35,8 +35,14 @@ class MemoryGame:
         self.reset_button_rect = pygame.Rect(0, 0, 1, 1)  # Placeholder initialization
         self.player_count = 0  # Initial state, not yet chosen
         self.current_player = 1
-        # flip animation vars:
+        # flip animation member
         self.flip_states = {}  # Tracks whether a card is flipping, and its progress
+        # Attack mode members
+        self.btn_time_attack_rect = None  # New button for Time Attack mode
+        self.is_time_attack = False
+        self.time_attack_limit = 60  # Starting time limit for Time Attack mode
+        self.start_image = pygame.image.load('./res/intro-image.png')
+        self.start_image_rect = self.start_image.get_rect(center=(self.screen_width // 2, self.screen_height // 2- 150))
 
     def draw_reset_button(self, btn_text="Reset"):
         button_width = 150
@@ -68,13 +74,13 @@ class MemoryGame:
         self.draw_reset_button("Play again")
 
     def draw_player_choice_buttons(self):
-        btn_1p_width = 120
-        btn_1p_height = 40
+        btn_1p_width = 130
+        btn_height = 40
         btn_1p_x = self.screen_width / 4 - btn_1p_width / 2
         btn_2p_x = self.screen_width * 3 / 4 - btn_1p_width / 2
-        btn_y = self.screen_height / 2 - btn_1p_height / 2
-        self.btn_1player_rect = pygame.Rect(btn_1p_x, btn_y, btn_1p_width, btn_1p_height)
-        self.btn_2player_rect = pygame.Rect(btn_2p_x, btn_y, btn_1p_width, btn_1p_height)
+        btn_y = self.screen_height / 2 - btn_height / 2
+        self.btn_1player_rect = pygame.Rect(btn_1p_x, btn_y, btn_1p_width, btn_height)
+        self.btn_2player_rect = pygame.Rect(btn_2p_x, btn_y, btn_1p_width + 15, btn_height)
 
         pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_1player_rect)
         pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_2player_rect)
@@ -84,6 +90,15 @@ class MemoryGame:
 
         self.screen.blit(text_1p, (btn_1p_x + 10, btn_y + 10))
         self.screen.blit(text_2p, (btn_2p_x + 10, btn_y + 10))
+
+        btn_time_attack_width = 170
+        btn_time_attack_height = 40
+        btn_time_attack_x = self.screen_width / 2 - btn_time_attack_width / 2
+        self.btn_time_attack_rect = pygame.Rect(btn_time_attack_x, btn_y, btn_time_attack_width,
+                                                btn_time_attack_height)
+        pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_time_attack_rect)
+        text_time_attack = self.font.render("Time Attack", True, pygame.Color('white'))
+        self.screen.blit(text_time_attack, (btn_time_attack_x + 10, btn_y + 10))
 
     def draw_cards(self):
         margin = 5  # A small margin between cards
@@ -120,9 +135,22 @@ class MemoryGame:
     def update_and_show_timer(self):
         current_ticks = pygame.time.get_ticks()
         elapsed_seconds = (current_ticks - self.start_ticks) // 1000
-        timer_text = f"Time: {elapsed_seconds // 60}:{elapsed_seconds % 60:02d}"
+
+        if self.is_time_attack:
+            # For Time Attack mode, calculate the remaining time
+            remaining_time = self.time_attack_limit - elapsed_seconds
+            if remaining_time < 0:
+                remaining_time = 0  # Prevent displaying negative time
+
+            # Format the remaining time as minutes:seconds
+            timer_text = f"Time Left: {remaining_time // 60}:{remaining_time % 60:02d}"
+        else:
+            # For normal mode, display the elapsed time
+            timer_text = f"Time: {elapsed_seconds // 60}:{elapsed_seconds % 60:02d}"
+
+        # Render the timer text and display it on the screen
         text_surface = self.font.render(timer_text, True, self.text_color)
-        self.screen.blit(text_surface, (10, self.screen_height - 50))  # Positioning the timer at the bottom left
+        self.screen.blit(text_surface, (10, self.screen_height - 50))  # Position for the standard timer
 
     def draw_current_player_indicator(self):
         x = self.reset_button_rect.x - 20
@@ -131,7 +159,7 @@ class MemoryGame:
         if self.player_count == 2:
             display_text = f"Player {self.current_player}'s Turn"
             text_surface = self.font.render(display_text, True, self.text_color)
-            self.screen.blit(text_surface, (x,y))
+            self.screen.blit(text_surface, (x, y))
 
     def reset_game(self):
         random.shuffle(self.colors)
@@ -162,6 +190,13 @@ class MemoryGame:
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
+                if self.btn_time_attack_rect.collidepoint(x, y):
+                    self.player_count = 1
+                    self.is_time_attack = True
+                    self.reset_game()
+                    self.time_attack_limit = 60  # Reset the time limit for a new game
+                    self.start_ticks = pygame.time.get_ticks()  # Restart the timer
+
                 if self.player_count == 0:
                     if self.btn_1player_rect.collidepoint(x, y):
                         self.player_count = 1
@@ -192,7 +227,8 @@ class MemoryGame:
             current_time = pygame.time.get_ticks()
             self.screen.fill(self.bg_color)
 
-            if self.player_count == 0:  # Player hasn't chosen single or two-player mode yet
+            if self.player_count == 0:  # Player hasn't chosen a mode yet
+                self.screen.blit(self.start_image, self.start_image_rect)
                 self.draw_player_choice_buttons()
             else:
                 if flip_back_time and current_time >= flip_back_time:
@@ -206,10 +242,14 @@ class MemoryGame:
                 # Draw reset btn or Well Done message
                 if self.is_game_over():  # All cards matched
                     self.draw_well_done_msg()
+                    if self.is_time_attack:
+                        self.time_attack_limit -= 5  # Decrease time limit for the next game, adjust value as needed
+                        self.reset_game()  # Reset the game for the next round
+                        self.start_ticks = pygame.time.get_ticks()  # Restart the timer for the new game
                 else:
                     self.draw_reset_button()
 
-            # Handling events
+            # Handling events - main game logic
             flip_back_time = self.handle_events(current_time, flip_back_time)
 
             pygame.display.flip()
