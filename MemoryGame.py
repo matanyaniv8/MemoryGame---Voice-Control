@@ -18,6 +18,7 @@ class MemoryGame:
                        pygame.Color('purple')] * 2
         self.btn_2player_rect = None
         self.btn_1player_rect = None
+        self.home_btn = pygame.Rect(0, 0, 100, 50)
         self.rows = 4
         self.cols = 4
         self.card_width = self.screen_width // self.cols
@@ -132,6 +133,15 @@ class MemoryGame:
                 pygame.draw.rect(self.screen, self.text_color, card_rect, 3)  # Card border
                 self.update_and_show_timer()
 
+    def draw_home_button(self):
+        if self.player_count > 0:
+            # Adjust button position and dimensions as needed
+            self.home_btn.topleft = (10, 10)  # Example position: top-left corner
+            pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.home_btn)
+            text_surface = self.font.render("Home", True, pygame.Color('white'))
+            text_rect = text_surface.get_rect(center=self.home_btn.center)
+            self.screen.blit(text_surface, text_rect)
+
     def update_and_show_timer(self):
         current_ticks = pygame.time.get_ticks()
         elapsed_seconds = (current_ticks - self.start_ticks) // 1000
@@ -197,6 +207,11 @@ class MemoryGame:
                     self.time_attack_limit = 60  # Reset the time limit for a new game
                     self.start_ticks = pygame.time.get_ticks()  # Restart the timer
 
+                if self.home_btn.collidepoint((x, y)):
+                    # Logic to return to the initial screen
+                    self.player_count = 0  # Resetting game mode selection
+                    self.is_time_attack = False  # If using Time Attack mode
+
                 if self.player_count == 0:
                     if self.btn_1player_rect.collidepoint(x, y):
                         self.player_count = 1
@@ -231,6 +246,7 @@ class MemoryGame:
                 self.screen.blit(self.start_image, self.start_image_rect)
                 self.draw_player_choice_buttons()
             else:
+                self.draw_home_button()
                 if flip_back_time and current_time >= flip_back_time:
                     self.selected.clear()
                     flip_back_time = None
