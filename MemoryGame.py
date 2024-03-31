@@ -1,11 +1,8 @@
 import pygame
 import random
 import sys
-from vosk import Model, KaldiRecognizer
-import json
 import threading
-import sounddevice as sd
-import numpy as np
+from VoiceControl import VoiceControl
 
 
 class MemoryGame:
@@ -50,8 +47,10 @@ class MemoryGame:
         self.start_image = pygame.image.load('./res/intro-image.png')
         self.start_image_rect = self.start_image.get_rect(
             center=(self.screen_width // 2, self.screen_height // 2 - 150))
-        # Voice Control members:
-        self.is_voice_control_active = True
+        # Voice Recognition Initialization
+        self.vc = VoiceControl()
+        self.voice_control_thread = None
+        self.is_voice_control_active = False
         self.btn_voice_control_rect = None
         self.microphone_icon = pygame.image.load(
             './res/voice control.jpg').convert_alpha()  # Convert_alpha for transparency
@@ -220,40 +219,52 @@ class MemoryGame:
         return len(self.matches) == len(self.colors)
 
     def handle_events(self, current_time, flip_back_time):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = event.pos
-                if self.home_btn.collidepoint((x, y)):
-                    # return to the initial screen
-                    self.player_count = 0  # Resetting game mode selection
-                    self.is_time_attack = False  # If using Time Attack mode
+        if self.is_voice_control_active:
+            num = self.vc.process_commands()
+            self.selected.append(num)
+            flip_back_time = current_time + 1000
 
-                if self.player_count == 0:
-                    if self.btn_1player_rect.collidepoint(x, y):
-                        self.player_count = 1
-                    elif self.btn_2player_rect.collidepoint(x, y):
-                        self.player_count = 2
-                    # Attack Mode
-                    elif self.btn_time_attack_rect.collidepoint(x, y):
-                        self.player_count = 1
-                        self.is_time_attack = True
-                        self.time_attack_limit = 60  # Reset the time limit for a new game
-                        self.start_ticks = pygame.time.get_ticks()  # Restart the timer
-                elif self.reset_button_rect.collidepoint(x, y):
-                    self.reset_game()
-                elif self.player_count and not flip_back_time:
-                    margin = 5  # Assuming this is the same margin used in draw_cards
-                    col = (x - margin - self.x_gap) // self.card_size
-                    row = (y - margin - self.y_gap) // self.card_size
-                    index = row * self.cols + col
-                    if index < len(self.colors) and index not in self.matches and index not in self.selected:
-                        self.selected.append(index)
-                        self.flip_states[index] = 0  # Start flipping animation with initial progress as 0
-                        if self.check_for_match():
-                            flip_back_time = current_time + 1000
+        else:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = event.pos
+                    if self.home_btn.collidepoint((x, y)):
+                        # return to the initial screen
+                        self.player_count = 0  # Resetting game mode selection
+                        self.is_time_attack = False  # If using Time Attack mode
+                        self.reset_game()
+
+                    if self.player_count == 0:
+                        if self.btn_voice_control_rect.collidepoint(x, y) and not self.is_voice_control_active:
+                            self.player_count = 1
+                            self.is_voice_control_active = True
+                            self.voice_control_thread = threading.Thread(target=self.vc.start_listening)
+                            self.voice_control_thread.start()
+                        elif self.btn_1player_rect.collidepoint(x, y):
+                            self.player_count = 1
+                        elif self.btn_2player_rect.collidepoint(x, y):
+                            self.player_count = 2
+                        # Attack Mode
+                        elif self.btn_time_attack_rect.collidepoint(x, y):
+                            self.player_count = 1
+                            self.is_time_attack = True
+                            self.time_attack_limit = 60  # Reset the time limit for a new game
+                            self.start_ticks = pygame.time.get_ticks()  # Restart the timer
+                    elif self.reset_button_rect.collidepoint(x, y):
+                        self.reset_game()
+                    elif self.player_count and not flip_back_time:
+                        margin = 5  # Assuming this is the same margin used in draw_cards
+                        col = (x - margin - self.x_gap) // self.card_size
+                        row = (y - margin - self.y_gap) // self.card_size
+                        index = row * self.cols + col
+                        if index < len(self.colors) and index not in self.matches and index not in self.selected:
+                            self.selected.append(index)
+                            self.flip_states[index] = 0  # Start flipping animation with initial progress as 0
+                            if self.check_for_match():
+                                flip_back_time = current_time + 1000
 
         return flip_back_time
 
@@ -262,6 +273,7 @@ class MemoryGame:
         flip_back_time = None
 
         while running:
+
             current_time = pygame.time.get_ticks()
             self.screen.fill(self.bg_color)
 
@@ -270,6 +282,20 @@ class MemoryGame:
                 self.draw_player_choice_buttons()
             else:
                 self.draw_home_button()
+                # Add voice command processing
+                if self.is_voice_control_active:
+                    command = self.vc.process_commands()
+                    if command is not None:
+                        command -= 1
+                        print(f"Voice Command: {command}")  # Debugging lin
+                        if command is not None and command < len(self.colors):
+                            if command not in self.matches and command not in self.selected:
+                                self.selected.append(command)
+                                self.selected.append(command)
+                                self.flip_states[command] = 0  # Start flipping animation with initial progress as 0
+                                if self.check_for_match():
+                                    flip_back_time = current_time + 1000
+
                 if flip_back_time and current_time >= flip_back_time:
                     self.selected.clear()
                     flip_back_time = None
@@ -292,8 +318,12 @@ class MemoryGame:
             flip_back_time = self.handle_events(current_time, flip_back_time)
 
             pygame.display.flip()
+        # After the game loop, ensure to stop listening
+        self.vc.stop_listening()
+        self.voice_control_thread.join()
 
 
 if __name__ == '__main__':
+    vc = VoiceControl("./voice-rec/vosk-model-small-en-us-0.15")
     game = MemoryGame()
     game.run()
