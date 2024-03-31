@@ -35,6 +35,8 @@ class MemoryGame:
         self.reset_button_rect = pygame.Rect(0, 0, 1, 1)  # Placeholder initialization
         self.player_count = 0  # Initial state, not yet chosen
         self.current_player = 1
+        # flip animation vars:
+        self.flip_states = {}  # Tracks whether a card is flipping, and its progress
 
     def draw_reset_button(self, btn_text="Reset"):
         button_width = 150
@@ -86,18 +88,33 @@ class MemoryGame:
     def draw_cards(self):
         margin = 5  # A small margin between cards
 
+        for index in list(self.flip_states.keys()):
+            self.flip_states[index] += 0.01  # Adjust this value to control the speed of the flip
+            if self.flip_states[index] >= 1:
+                self.flip_states.pop(index)  # Remove from flip_states if flip is complete
+
         for row in range(self.rows):
             for col in range(self.cols):
                 index = row * self.cols + col
                 # Calculate x and y position of the card with margins
                 x_pos = col * self.card_size + margin + self.x_gap
                 y_pos = row * self.card_size + margin + self.y_gap
-                rect = pygame.Rect(x_pos, y_pos, self.card_size - margin * 2, self.card_size - margin * 2)
-                if index in self.matches or index in self.selected:
-                    pygame.draw.rect(self.screen, self.colors[index], rect)
+                card_rect = pygame.Rect(x_pos, y_pos, self.card_size - margin * 2, self.card_size - margin * 2)
+
+                if index in self.flip_states:
+                    progress = self.flip_states[index]
+                    # Calculate current width based on flip progress
+                    current_width = int(card_rect.width * progress)
+                    # Adjust x position to keep the card centered
+                    adjusted_rect = pygame.Rect(card_rect.x + (card_rect.width - current_width) // 2, card_rect.y,
+                                                current_width, card_rect.height)
+                    pygame.draw.rect(self.screen, self.colors[index], adjusted_rect)
+                elif index in self.matches or index in self.selected:
+                    pygame.draw.rect(self.screen, self.colors[index], card_rect)
                 else:
-                    pygame.draw.rect(self.screen, self.hidden_color, rect)
-                pygame.draw.rect(self.screen, self.text_color, rect, 3)  # Card border
+                    pygame.draw.rect(self.screen, self.hidden_color, card_rect)
+
+                pygame.draw.rect(self.screen, self.text_color, card_rect, 3)  # Card border
                 self.update_and_show_timer()
 
     def update_and_show_timer(self):
@@ -138,6 +155,35 @@ class MemoryGame:
     def is_game_over(self):
         return len(self.matches) == len(self.colors)
 
+    def handle_events(self, current_time, flip_back_time):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if self.player_count == 0:
+                    if self.btn_1player_rect.collidepoint(x, y):
+                        self.player_count = 1
+                        self.reset_game()
+                    elif self.btn_2player_rect.collidepoint(x, y):
+                        self.player_count = 2
+                        self.reset_game()
+                elif self.reset_button_rect.collidepoint(x, y):
+                    self.reset_game()
+                elif self.player_count and not flip_back_time:
+                    margin = 5  # Assuming this is the same margin used in draw_cards
+                    col = (x - margin - self.x_gap) // self.card_size
+                    row = (y - margin - self.y_gap) // self.card_size
+                    index = row * self.cols + col
+                    if index < len(self.colors) and index not in self.matches and index not in self.selected:
+                        self.selected.append(index)
+                        self.flip_states[index] = 0  # Start flipping animation with initial progress as 0
+                        if self.check_for_match():
+                            flip_back_time = current_time + 1000
+
+        return flip_back_time
+
     def run(self):
         running = True
         flip_back_time = None
@@ -164,30 +210,7 @@ class MemoryGame:
                     self.draw_reset_button()
 
             # Handling events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    x, y = event.pos
-                    if self.player_count == 0:
-                        if self.btn_1player_rect.collidepoint(x, y):
-                            self.player_count = 1
-                            self.reset_game()
-                        elif self.btn_2player_rect.collidepoint(x, y):
-                            self.player_count = 2
-                            self.reset_game()
-                    elif self.reset_button_rect.collidepoint(x, y):
-                        self.reset_game()
-                    elif self.player_count and not flip_back_time:
-                        margin = 5  # Assuming this is the same margin used in draw_cards
-                        col = (x - margin - self.x_gap) // self.card_size
-                        row = (y - margin - self.y_gap) // self.card_size
-                        index = row * self.cols + col
-                        if index < len(self.colors) and index not in self.matches and index not in self.selected:
-                            self.selected.append(index)
-                            if self.check_for_match():
-                                flip_back_time = current_time + 1000
+            flip_back_time = self.handle_events(current_time, flip_back_time)
 
             pygame.display.flip()
 
