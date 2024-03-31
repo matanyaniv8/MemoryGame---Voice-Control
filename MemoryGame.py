@@ -205,20 +205,20 @@ class MemoryGame:
                     self.player_count = 0  # Resetting game mode selection
                     self.is_time_attack = False  # If using Time Attack mode
 
-                elif self.btn_time_attack_rect.collidepoint(x, y):
-                    self.player_count = 1
-                    self.is_time_attack = True
-                    self.time_attack_limit = 60  # Reset the time limit for a new game
-                    self.start_ticks = pygame.time.get_ticks()  # Restart the timer
-                    self.reset_game()
-
                 if self.player_count == 0:
                     if self.btn_1player_rect.collidepoint(x, y):
                         self.player_count = 1
                         self.reset_game()
                     elif self.btn_2player_rect.collidepoint(x, y):
                         self.player_count = 2
-                        self.reset_game()
+                    # Attack Mode
+                    elif self.btn_time_attack_rect.collidepoint(x, y):
+                        self.player_count = 1
+                        self.is_time_attack = True
+                        self.time_attack_limit = 60  # Reset the time limit for a new game
+                        self.start_ticks = pygame.time.get_ticks()  # Restart the timer
+                    self.reset_game()
+
                 elif self.reset_button_rect.collidepoint(x, y):
                     self.reset_game()
                 elif self.player_count and not flip_back_time:
