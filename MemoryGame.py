@@ -200,17 +200,17 @@ class MemoryGame:
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
-                if self.btn_time_attack_rect.collidepoint(x, y):
-                    self.player_count = 1
-                    self.is_time_attack = True
-                    self.reset_game()
-                    self.time_attack_limit = 60  # Reset the time limit for a new game
-                    self.start_ticks = pygame.time.get_ticks()  # Restart the timer
-
                 if self.home_btn.collidepoint((x, y)):
                     # Logic to return to the initial screen
                     self.player_count = 0  # Resetting game mode selection
                     self.is_time_attack = False  # If using Time Attack mode
+
+                elif self.btn_time_attack_rect.collidepoint(x, y):
+                    self.player_count = 1
+                    self.is_time_attack = True
+                    self.time_attack_limit = 60  # Reset the time limit for a new game
+                    self.start_ticks = pygame.time.get_ticks()  # Restart the timer
+                    self.reset_game()
 
                 if self.player_count == 0:
                     if self.btn_1player_rect.collidepoint(x, y):
