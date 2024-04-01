@@ -12,7 +12,7 @@ class MemoryGame:
         pygame.init()
         screen_info = pygame.display.Info()
         self.screen_width = int(screen_info.current_w * 0.4)
-        self.screen_height = int(screen_info.current_h * 0.8)
+        self.screen_height = int(screen_info.current_h * 0.7)
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.bg_color = pygame.Color('white')
         self.hidden_color = pygame.Color('grey')
@@ -52,7 +52,6 @@ class MemoryGame:
             center=(self.screen_width // 2, self.screen_height // 2 - 150))
         # Voice Recognition Initialization
         self.vc = None
-        self.voice_control_thread = None
         self.is_voice_control_active = False
         self.btn_voice_control_rect = None
         self.microphone_icon = pygame.image.load(
@@ -91,7 +90,7 @@ class MemoryGame:
     def draw_player_choice_buttons(self):
         # Single and Multiplayer buttons settings
         btn_1p_width = 130
-        btn_height = 40
+        btn_height = 45
         btn_1p_x = self.screen_width / 4 - btn_1p_width / 2 - 50
         btn_2p_x = self.screen_width * 3 / 4 - btn_1p_width / 2 + 50
         btn_y = self.screen_height / 2 - btn_height / 2
@@ -119,7 +118,7 @@ class MemoryGame:
         # Voice control button
         btn_voice_control_width = 225
         btn_voice_control_height = 35
-        btn_voice_control_x = 0
+        btn_voice_control_x = btn_1p_x - 35
         btn_voice_control_y = self.btn_1player_rect.bottom + 20  # Place below the 1 Player button
         self.btn_voice_control_rect = pygame.Rect(btn_voice_control_x, btn_voice_control_y, btn_voice_control_width,
                                                   btn_voice_control_height)
