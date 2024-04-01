@@ -28,6 +28,7 @@ class MemoryGame:
         self.card_width = self.screen_width // self.cols
         self.card_height = self.screen_height // self.rows - 10
         self.card_size = min(self.screen_width // self.cols, self.screen_height // self.rows) - 40
+        self.time_between_flips = 1000
         # gaps for each axis for centering the cards position.
         self.y_gap = 70
         self.x_gap = 80
@@ -132,7 +133,7 @@ class MemoryGame:
         margin = 5  # A small margin between cards
 
         for index in list(self.flip_states.keys()):
-            self.flip_states[index] += 0.01  # Adjust this value to control the speed of the flip
+            self.flip_states[index] += 0.02  # Adjust this value to control the speed of the flip
             if self.flip_states[index] >= 1:
                 self.flip_states.pop(index)  # Remove from flip_states if flip is complete
 
@@ -204,6 +205,9 @@ class MemoryGame:
         self.selected.clear()
         self.start_ticks = pygame.time.get_ticks()
         self.current_player = 1  # Reset to player 1 for a new game
+        if self.is_voice_control_active:
+            self.is_voice_control_active = False
+            self.vc = None
 
     def check_for_match(self):
         if len(self.selected) == 2:
@@ -218,56 +222,116 @@ class MemoryGame:
         return False
 
     def is_game_over(self):
+        """
+        Checks if the game is over (
+        :return:
+        """
         return len(self.matches) == len(self.colors)
 
-    def handle_voice_event(self, current_time, flip_back_time):
+    def handle_voice_event(self, current_time, flip_back_time, number):
+        """
+        Handle voice events sends from the VoiceControl to the pygame event handler.
+        :param current_time: current program time.
+        :param flip_back_time: Time to flip back the cards.
+        :param number: Number recognized by the voice control mechanism.
+        :return: The update time to flip back the selected cards.
+        """
+        if self.is_voice_control_active and not flip_back_time:
+            if number != -1:
+                number -= 1  # Adjust command index to match card index
+                if number < len(self.colors) and number not in self.matches and number not in self.selected:
+                    self.selected.append(number)
+                    self.flip_states[number] = 0  # Start flipping animation
+                    if self.check_for_match():
+                        # If cards don't match, set flip_back_time to give users a chance to see the second card
+                        flip_back_time = current_time + self.time_between_flips
+        return flip_back_time
+
+    def handle_cards_pressing(self, current_time, flip_back_time, x_coords, y_coords):
+        """
+        Handles cards pressing if voice control is not ON.
+        :return: Time to flip back the cards
+        """
+        margin = 5  # Assuming this is the same margin used in draw_cards
+        col = (x_coords - margin - self.x_gap) // self.card_size
+        row = (y_coords - margin - self.y_gap) // self.card_size
+        index = row * self.cols + col
+        if index < len(self.colors) and index not in self.matches and index not in self.selected:
+            self.selected.append(index)
+            self.flip_states[index] = 0  # Start flipping animation with initial progress as 0
+            if self.check_for_match():
+                flip_back_time = current_time + self.time_between_flips
+        return flip_back_time
+
+    def handle_home_btn_pressing(self):
+        """
+        Handles home button pressing
+        """
+        # return to the initial screen
+        self.player_count = 0  # Resetting game mode selection
+        self.is_time_attack = False  # If using Time Attack mode
+        if self.vc is not None:
+            self.vc.stop_listening()
+        self.reset_game()
+
+    def handle_menu_btn_pressing(self, x_coordinate, y_coordinate):
+        """
+        Handles menu button pressing given a pygame.MOUSEBUTTONDOWN event has occurred.
+        """
+        if self.btn_voice_control_rect.collidepoint(x_coordinate, y_coordinate) and not self.is_voice_control_active:
+            self.player_count = 1
+            self.is_voice_control_active = True
+            self.vc = VoiceControl()
+            self.vc.start_listening()
+        elif self.btn_1player_rect.collidepoint(x_coordinate, y_coordinate):
+            self.player_count = 1
+        elif self.btn_2player_rect.collidepoint(x_coordinate, y_coordinate):
+            self.player_count = 2
+        # Attack Mode
+        elif self.btn_time_attack_rect.collidepoint(x_coordinate, y_coordinate):
+            self.player_count = 1
+            self.is_time_attack = True
+            self.time_attack_limit = 60  # Reset the time limit for a new game
+            self.start_ticks = pygame.time.get_ticks()  # Restart the timer
 
     def handle_events(self, current_time, flip_back_time):
+        """
+        Handles events received from the pygame.
+        :param current_time: game current time
+        :param flip_back_time: remaining time to flip back the cards
+        :return: the update remaining time left until cards needs to be flipped
+        """
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # After the game loop, ensure to stop listening
+                if self.vc is not None:
+                    self.vc.stop_listening()
                 pygame.quit()
                 sys.exit()
+            # Voice control event
+            elif event.type == VoiceControl.VOICE_RECOGNIZE_EVENT_TYPE:
+                flip_back_time = self.handle_voice_event(current_time, flip_back_time, event.data)
+            # Mouse button event handling
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
                 if self.home_btn.collidepoint((x, y)):
-                    # return to the initial screen
-                    self.player_count = 0  # Resetting game mode selection
-                    self.is_time_attack = False  # If using Time Attack mode
-                    self.reset_game()
-
+                    self.handle_home_btn_pressing()
+                # Show the initial menu
                 if self.player_count == 0:
-                    if self.btn_voice_control_rect.collidepoint(x, y) and not self.is_voice_control_active:
-                        self.player_count = 1
-                        self.is_voice_control_active = True
-                        self.vc = VoiceControl()
-                        self.vc.start_listening()
-                    elif self.btn_1player_rect.collidepoint(x, y):
-                        self.player_count = 1
-                    elif self.btn_2player_rect.collidepoint(x, y):
-                        self.player_count = 2
-                    # Attack Mode
-                    elif self.btn_time_attack_rect.collidepoint(x, y):
-                        self.player_count = 1
-                        self.is_time_attack = True
-                        self.time_attack_limit = 60  # Reset the time limit for a new game
-                        self.start_ticks = pygame.time.get_ticks()  # Restart the timer
+                    self.handle_menu_btn_pressing(x, y)
+                # Reset button been pressed
                 elif self.reset_button_rect.collidepoint(x, y):
                     self.reset_game()
-                elif self.player_count and not flip_back_time:
-                    margin = 5  # Assuming this is the same margin used in draw_cards
-                    col = (x - margin - self.x_gap) // self.card_size
-                    row = (y - margin - self.y_gap) // self.card_size
-                    index = row * self.cols + col
-                    if index < len(self.colors) and index not in self.matches and index not in self.selected:
-                        self.selected.append(index)
-                        self.flip_states[index] = 0  # Start flipping animation with initial progress as 0
-                        if self.check_for_match():
-                            time_to_add = 2000 if self.is_voice_control_active else 1000
-                            flip_back_time = current_time + 1000
+                # card pressing
+                elif self.player_count and not flip_back_time and not self.is_voice_control_active:
+                    flip_back_time = self.handle_cards_pressing(current_time, flip_back_time, x, y)
 
         return flip_back_time
 
     def run(self):
+        """
+        Main loop of the game that integrate all the components of the game logic.
+        """
         running = True
         flip_back_time = 0
         while running:
@@ -280,28 +344,17 @@ class MemoryGame:
                 self.draw_player_choice_buttons()
             else:
                 self.draw_home_button()
-                # Add voice command processing
-                if self.is_voice_control_active and not flip_back_time:
-                    command = self.vc.get_number()  # Assuming this method correctly retrieves the next voice command or -1 if none
-                    if command != -1:
-                        command -= 1  # Adjust command index to match card index
-                        if command < len(self.colors) and command not in self.matches and command not in self.selected:
-                            self.selected.append(command)
-                            self.flip_states[command] = 0  # Start flipping animation
-                            if self.check_for_match():
-                                # If cards don't match, set flip_back_time to give users a chance to see the second card
-                                flip_back_time = current_time + (2000 if self.is_voice_control_active else 1000)
-
+                # Checks if chosen cards need to be released
                 if flip_back_time and current_time >= flip_back_time:
                     self.selected.clear()
                     flip_back_time = None
                     if self.player_count == 2:
                         self.current_player = 2 if self.current_player == 1 else 1
-
+                # Updates Board at every iteration
                 self.draw_cards()
                 self.draw_current_player_indicator()
-                # Draw reset btn or Well Done message
-                if self.is_game_over():  # All cards matched
+                # Draw reset btn or Well-Done message if all cards matched
+                if self.is_game_over():
                     self.draw_well_done_msg()
                     if self.is_time_attack:
                         self.time_attack_limit -= 5  # Decrease time limit for the next game, adjust value as needed
@@ -312,11 +365,9 @@ class MemoryGame:
 
             # Handling events - main game logic
             flip_back_time = self.handle_events(current_time, flip_back_time)
-
             pygame.display.flip()
         # After the game loop, ensure to stop listening
         self.vc.stop_listening()
-        self.voice_control_thread.join()
 
 
 if __name__ == '__main__':

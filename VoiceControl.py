@@ -3,10 +3,24 @@ import sounddevice as sd
 import json
 import queue
 from threading import Thread
+import pygame
+
+
+def text_to_number(text):
+    number_words = {
+        "one": 1, "two": 2, "three": 3, "four": 4, "for": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fortheen": 14,
+        "fifteen": 15, "sixteen": 16
+    }
+    return number_words.get(text.lower(), -1)
 
 
 class VoiceControl:
+    VOICE_RECOGNIZE_EVENT_TYPE = pygame.USEREVENT + 1
+
     def __init__(self, model_path="./voice-rec/vosk-model-small-en-us-0.15"):
+        self.process_thread = None
         self.stream = None
         # Using a thread-safe queue for commands to ensure safe cross-thread operations
         self.commands_queue = queue.Queue()
@@ -32,7 +46,7 @@ class VoiceControl:
         self.stream.start()
         # Start a background thread to process commands
         self.process_thread = Thread(target=self.process_commands)
-        self.process_thread.daemon = True
+        # self.process_thread.daemon = True
         self.process_thread.start()
 
     def stop_listening(self):
@@ -53,32 +67,10 @@ class VoiceControl:
     def handle_command(self, command):
         list_of_commands = command.split(' ')
         for command in list_of_commands:
-            number = self.text_to_number(command)
+            number = text_to_number(command)
             # Process the number or command as needed
-            self.commands.append(number)
+            if number != -1:
+                pygame.event.post(pygame.event.Event(VoiceControl.VOICE_RECOGNIZE_EVENT_TYPE, data=number))
             print(self.commands)
-        #print(f"Command: {command}, Number: {number}")
-
-    def get_number(self):
-        num = -1 if len(self.commands) == 0 else self.commands.pop(0)
-        return num
-
-    def text_to_number(self, text):
-        number_words = {
-            "one": 1, "two": 2, "three": 3, "four": 4, "for": 4, "five": 5,
-            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-            "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
-            "fifteen": 15, "sixteen": 16
-        }
-        return number_words.get(text.lower(), -1)
 
 
-# Example usage
-if __name__ == "__main__":
-    vc = VoiceControl()
-    vc.start_listening()
-    # Simulate running for some time
-    import time
-
-    time.sleep(10)  # Listen for 10 seconds for demonstration
-    vc.stop_listening()
