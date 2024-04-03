@@ -12,12 +12,9 @@ class MemoryGame:
                        pygame.Color('cyan'), pygame.Color('magenta'), pygame.Color('orange'),
                        pygame.Color('purple')] * 2
         random.shuffle(self.colors)
-
         self.rows = 4
         self.cols = 4
-
         self.time_between_flips = 1000
-
         self.selected = []
         self.matches = set()
         self.start_ticks = pygame.time.get_ticks()
