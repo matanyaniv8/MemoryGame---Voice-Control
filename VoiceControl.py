@@ -71,6 +71,5 @@ class VoiceControl:
             # Process the number or command as needed
             if number != -1:
                 pygame.event.post(pygame.event.Event(VoiceControl.VOICE_RECOGNIZE_EVENT_TYPE, data=number))
-            print(self.commands)
 
 
