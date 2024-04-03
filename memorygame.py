@@ -32,6 +32,9 @@ class MemoryGame:
         self.drawing = MemoryGameDrawing(self)  # Pass the game instance to Drawing
 
     def update_and_show_timer(self):
+        """
+        Updates the timer and shows the current time of the game since the player/s started to play.
+        """
         current_ticks = pygame.time.get_ticks()
         elapsed_seconds = (current_ticks - self.start_ticks) // 1000
         if self.is_time_attack:
@@ -47,6 +50,9 @@ class MemoryGame:
         self.drawing.screen.blit(text_surface, (10, self.drawing.screen_height - 50))  # Position for the standard timer
 
     def reset_game(self):
+        """
+        Resets the game state and updates the voice control system if needed.
+        """
         random.shuffle(self.colors)
         self.matches.clear()
         self.selected.clear()
@@ -57,6 +63,9 @@ class MemoryGame:
             self.vc = None
 
     def check_for_match(self):
+        """
+        Checks if the two selected cards have the same color.
+        """
         if len(self.selected) == 2:
             index1, index2 = self.selected
             if self.colors[index1] == self.colors[index2]:
@@ -70,15 +79,14 @@ class MemoryGame:
 
     def is_game_over(self):
         """
-        Checks if the game is over (
-        :return:
+        Checks if the game is over (all the cards have been discovered).
         """
         return len(self.matches) == len(self.colors)
 
     def handle_voice_event(self, current_time, flip_back_time, number):
         """
         Handle voice events sends from the VoiceControl to the pygame event handler.
-        :param current_time: current program time.
+        :param current_time: Current program time.
         :param flip_back_time: Time to flip back the cards.
         :param number: Number recognized by the voice control mechanism.
         :return: The update time to flip back the selected cards.
@@ -176,6 +184,9 @@ class MemoryGame:
         return flip_back_time
 
     def run(self):
+        """
+        Main loop of the game.
+        """
         running = True
         flip_back_time = 0
         while running:
