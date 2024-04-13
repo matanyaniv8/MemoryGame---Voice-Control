@@ -135,6 +135,14 @@ class MemoryGameDrawing:
                     pygame.draw.rect(self.screen, self.hidden_color, card_rect)
 
                 pygame.draw.rect(self.screen, self.text_color, card_rect, 3)  # Card border
+
+                # Check if voice control mode is active and draw the card number for a more accessible game.
+                if self.game.is_voice_control_active:
+                    number_text = self.font.render(str(index + 1), True,
+                                                   self.text_color)  # Index + 1 to start numbers from 1
+                    text_rect = number_text.get_rect(topright=(card_rect.right - 5, card_rect.top + 5))
+                    self.screen.blit(number_text, text_rect)
+
                 self.game.update_and_show_timer()
 
     def draw_home_button(self):
