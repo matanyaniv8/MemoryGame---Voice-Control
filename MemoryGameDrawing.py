@@ -9,7 +9,7 @@ class MemoryGameDrawing:
         self.screen_width = int(screen_info.current_w * 0.4)
         self.screen_height = int(screen_info.current_h * 0.7)
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        self.bg_color = pygame.Color('white')
+        self.bg_color = pygame.Color(240, 230, 220)
         self.hidden_color = pygame.Color('grey')
         self.text_color = pygame.Color('black')
         self.cols = self.game.cols
@@ -32,6 +32,7 @@ class MemoryGameDrawing:
         self.microphone_icon = pygame.image.load(
             './res/voice control.jpg').convert_alpha()  # Convert_alpha for transparency
         self.microphone_icon = pygame.transform.scale(self.microphone_icon, (30, 30))  # Adjust size as needed
+        self.buttons_color = pygame.Color(128, 0, 32)  # Bordeaux
 
     def draw_reset_button(self, btn_text="Reset"):
         button_width = 150
@@ -39,7 +40,7 @@ class MemoryGameDrawing:
         button_x = self.screen_width / 2 - button_width / 2
         button_y = self.screen_height - button_height - 20
         self.reset_button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
-        pygame.draw.rect(self.screen, pygame.Color('dodgerblue'), self.reset_button_rect)
+        pygame.draw.rect(self.screen, self.buttons_color, self.reset_button_rect)
         text_surface = self.font.render(btn_text, True, pygame.Color('white'))
         text_rect = text_surface.get_rect(center=self.reset_button_rect.center)
         self.screen.blit(text_surface, text_rect)
@@ -72,8 +73,8 @@ class MemoryGameDrawing:
         self.btn_1player_rect = pygame.Rect(btn_1p_x, btn_y, btn_1p_width, btn_height)
         self.btn_2player_rect = pygame.Rect(btn_2p_x, btn_y, btn_1p_width + 15, btn_height)
 
-        pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_1player_rect)
-        pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_2player_rect)
+        pygame.draw.rect(self.screen, self.buttons_color, self.btn_1player_rect)
+        pygame.draw.rect(self.screen, self.buttons_color, self.btn_2player_rect)
 
         text_1p = self.font.render("1 Player", True, pygame.Color('white'))
         text_2p = self.font.render("2 Players", True, pygame.Color('white'))
@@ -86,7 +87,7 @@ class MemoryGameDrawing:
         btn_time_attack_x = self.screen_width / 2 - btn_time_attack_width / 2
         self.btn_time_attack_rect = pygame.Rect(btn_time_attack_x, btn_y, btn_time_attack_width,
                                                 btn_time_attack_height)
-        pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_time_attack_rect)
+        pygame.draw.rect(self.screen, self.buttons_color, self.btn_time_attack_rect)
         text_time_attack = self.font.render("Time Attack", True, pygame.Color('white'))
         self.screen.blit(text_time_attack, (btn_time_attack_x + 10, btn_y + 10))
 
@@ -98,7 +99,7 @@ class MemoryGameDrawing:
         self.btn_voice_control_rect = pygame.Rect(btn_voice_control_x, btn_voice_control_y,
                                                   btn_voice_control_width,
                                                   btn_voice_control_height)
-        pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.btn_voice_control_rect)
+        pygame.draw.rect(self.screen, self.buttons_color, self.btn_voice_control_rect)
         text_voice_control = self.font.render("Voice Control", True, pygame.Color('white'))
         self.screen.blit(text_voice_control, (btn_voice_control_x + 40, btn_voice_control_y + 10))
         icon_pos = self.btn_voice_control_rect.topleft + pygame.Vector2(4, 3.5)
@@ -149,7 +150,7 @@ class MemoryGameDrawing:
         if self.game.player_count > 0:
             # Adjust button position and dimensions as needed
             self.home_btn.topleft = (10, 10)  # Example position: top-left corner
-            pygame.draw.rect(self.screen, pygame.Color('skyblue'), self.home_btn)
+            pygame.draw.rect(self.screen, self.buttons_color, self.home_btn)
             text_surface = self.font.render("Home", True, pygame.Color('white'))
             text_rect = text_surface.get_rect(center=self.home_btn.center)
             self.screen.blit(text_surface, text_rect)
