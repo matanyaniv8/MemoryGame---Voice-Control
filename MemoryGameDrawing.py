@@ -2,6 +2,9 @@ import pygame
 
 
 class MemoryGameDrawing:
+    """
+    Drawing manager for Memory game.
+    """
     def __init__(self, game):
         self.game = game
         self.font = pygame.font.Font(None, 40)

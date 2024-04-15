@@ -17,6 +17,9 @@ def text_to_number(text):
 
 
 class VoiceControl:
+    """
+    Voice control class that converts audio to text - especially to number.
+    """
     VOICE_RECOGNIZE_EVENT_TYPE = pygame.USEREVENT + 1
 
     def __init__(self, model_path="./voice-rec/vosk-model-small-en-us-0.15"):

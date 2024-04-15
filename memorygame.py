@@ -6,6 +6,9 @@ from VoiceControl import VoiceControl
 
 
 class MemoryGame:
+    """
+    Memory game class that responsible for the game logic and play.
+    """
     def __init__(self):
         pygame.init()
         self.colors = [pygame.Color('red'), pygame.Color('green'), pygame.Color('blue'), pygame.Color('yellow'),
