@@ -1,6 +1,14 @@
 
 # Memory Game in Pygame
 
+
+
+https://github.com/matanyaniv8/MemoryGame---Voice-Control/assets/95882684/8fedcbc7-9077-4460-b915-04fd1060d68e
+
+
+
+
+
 This Memory Game is developed using Pygame and features both single-player and multiplayer modes. In single-player mode, you can choose from a classic game or a time attack mode where you must complete the board within a set time. Additionally, the single-player mode supports voice control using the Vosk speech recognition model. For multiplayer fun, two players can compete with each other, with the player making a successful match taking another turn immediately.
 
 ## Features
